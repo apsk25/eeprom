@@ -17,6 +17,7 @@
 #include <linux/platform_data/at24.h>
 #include <linux/pm_runtime.h>
 #include <linux/gpio/consumer.h>
+//#include "eeprom24.h"
 /* I2C Device ID List */
 struct at24_chip_data {
 		/*
@@ -26,6 +27,7 @@ struct at24_chip_data {
 		u32 byte_len;
 		u8 flags;
 };
+
 #define AT24_CHIP_DATA(_name, _len, _flags)						\
 				static const struct at24_chip_data _name = {		\
 					.byte_len=_len, .flags=_flags,			\
@@ -53,8 +55,103 @@ static int eeprom24_probe(struct i2c_client *client)
 {
        // struct si470x_device *radio;
        // int retval = 0;
-        printk("\nmy probe called\n");
-        return 0;
+	struct device *dev = &client->dev;
+	struct at24_platform_data *pdata;     
+	struct device_node *of_node = dev->of_node;
+	const struct i2c_device_id *id;
+	const struct at24_chip_data *cdata;
+
+	int err,val;
+	printk("\nmy probe called\n");
+
+	pdata=dev_get_platdata(dev);// return platform data associated with the device.
+				    // It essentially does "return dev->platform_data"
+	
+	
+        if(pdata==NULL)
+	{
+		pdata=devm_kzalloc(dev,sizeof(struct at24_platform_data),GFP_KERNEL);
+		printk("\n Platform data is null");
+		id = i2c_match_id(at24_ids, to_i2c_client(dev));
+		/*
+		 * 	 * The I2C core allows OF nodes compatibles to match against the
+		 * 	 	 * I2C device ID table as a fallback, so check not only if an OF
+		 * 	 	 	 * node is present but also if it matches an OF device ID entry.
+		 * 	 	 	 	 */
+		if (of_node && of_match_device(at24_of_match, dev))
+		{
+			cdata = of_device_get_match_data(dev);
+			printk("\n111\n");
+		}
+		else if (id)
+		{
+			printk("\n2222\n");
+			cdata = (void *)id->driver_data;
+		}
+		else
+			printk("\n3333\n");
+	//		cdata = acpi_device_get_match_data(dev);
+
+		if (!cdata)
+			return -ENODEV;
+
+			printk("\n4444\n");
+		pdata->byte_len = cdata->byte_len;
+		pdata->flags = cdata->flags;
+			printk("\n5555\n");
+	
+		if(device_property_present(dev,"read-only"))
+			pdata->flags |= AT24_FLAG_READONLY;
+		if(device_property_present(dev,"no-read-rollover"))
+			pdata->flags |= AT24_FLAG_NO_RDROL;
+
+			printk("\n6666\n");
+		err = device_property_read_u32(dev, "address-width", &val);
+		if(!err)
+		{
+			switch(val){
+				case 8:
+					if (pdata->flags & AT24_FLAG_ADDR16)
+						dev_warn(dev, "Override address width to be 8, while default is 16\n");
+
+					pdata->flags &= ~AT24_FLAG_ADDR16;
+					printk("\nWidth is 8 bits\n");
+					break;
+				case 16:
+					pdata->flags |= AT24_FLAG_ADDR16;
+					printk("\nWidth is 16 bits\n");
+					break;
+				default:
+					dev_warn(dev, "Bad \"address-width\" property: %u\n", val);
+				}
+			
+		}
+		else
+			printk("\n Platform Data\n");
+	
+
+		err = device_property_read_u32(dev, "size", &val);
+		if (!err)
+			pdata->byte_len = val;
+
+		err = device_property_read_u32(dev, "pagesize", &val);
+		if (!err) {
+				pdata->page_size = val;
+			  } 
+		else {
+			/*
+			 * 		 * This is slow, but we can't know all eeproms, so we better
+			 * 		 		 * play safe. Specifying custom eeprom-types via platform_data
+			 * 		 		 		 * is recommended anyhow.
+			 * 		 		 		 		 */
+			pdata->page_size = 1;
+		    }
+
+		printk("\n Length of single value=%d\n",pdata->byte_len);
+		printk("\n pdata->page_size=%d\n",pdata->page_size);
+//		printk("\n pdata->=%d\n",pdata->byte_len);
+	}
+	return 0;
 };
 
 
