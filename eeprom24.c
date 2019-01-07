@@ -99,12 +99,12 @@ static int eeprom24_probe(struct i2c_client *client)
 		pdata->byte_len = cdata->byte_len;
 		pdata->flags = cdata->flags;
 			printk("\n5555\n");
-	
+/*	
 		if(device_property_present(dev,"read-only"))
 			pdata->flags |= AT24_FLAG_READONLY;
 		if(device_property_present(dev,"no-read-rollover"))
 			pdata->flags |= AT24_FLAG_NO_RDROL;
-
+*/
 			printk("\n6666\n");
 		err = device_property_read_u32(dev, "address-width", &val);
 		if(!err)
