@@ -17,7 +17,10 @@
 #include <linux/platform_data/at24.h>
 #include <linux/pm_runtime.h>
 #include <linux/gpio/consumer.h>
+#include "eeprom24.h"
 //#include "eeprom24.h"
+
+struct i2c_client *client1;
 /* I2C Device ID List */
 struct at24_chip_data {
 		/*
@@ -51,26 +54,30 @@ static const struct of_device_id at24_of_match[] = {
 MODULE_DEVICE_TABLE(of, at24_of_match);
 
 
-int eeprom24_read(struct i2c_client *client)
+int eeprom24_read()
 {
-	int reg_addr=client->addr;
+//	int reg_addr=client1->addr;
 //	u8 reg_addr[2];
-	char data_in[1];
-	int number_bytes=1;
+	char data_write[10]="Amrit";
+	char data_read[10];
+	int number_bytes=sizeof(data_write);
 	struct i2c_msg msgs[1] =
 	       {
 	          { 
-			  client->addr, I2C_M_RD, sizeof(u8)*number_bytes,
-	                 (void *)data_in },
+			  client1->addr, 0, sizeof(u8)*number_bytes,
+	                 (void *)data_write 
+		  },
+		  { 
+			  client1->addr, I2C_M_RD, sizeof(u8)*number_bytes,
+	                 (void *)data_read
+		  },
      		  };
-	i2c_transfer(client->adapter,msgs,1);
-	printk("\ndata_in=0x%x\n",data_in);
+	i2c_transfer(client1->adapter,msgs,2);
+	printk("\ndats read back=%s\n",data_read);
 }
 
 static int eeprom24_probe(struct i2c_client *client)
 {
-       // struct si470x_device *radio;
-       // int retval = 0;
 	struct device *dev = &client->dev;
 	struct at24_platform_data *pdata;     
 	struct device_node *of_node = dev->of_node;
@@ -162,12 +169,15 @@ static int eeprom24_probe(struct i2c_client *client)
 
 		printk("\n Length of single value=%d\n",pdata->byte_len);
 		printk("\n pdata->page_size=%d\n",pdata->page_size);
-//		printk("\n pdata->=%d\n",pdata->byte_len);
 	}
-	eeprom24_read(client);
+	client1=client;
+	eeprom24_read();
 	return 0;
 };
 
+
+EXPORT_SYMBOL(eeprom24_read);
+EXPORT_SYMBOL(client1);
 
 static struct i2c_driver eeprom24_i2c_driver = {
         .driver = {
