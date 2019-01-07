@@ -51,6 +51,22 @@ static const struct of_device_id at24_of_match[] = {
 MODULE_DEVICE_TABLE(of, at24_of_match);
 
 
+int eeprom24_read(struct i2c_client *client)
+{
+	int reg_addr=client->addr;
+//	u8 reg_addr[2];
+	char data_in[1];
+	int number_bytes=1;
+	struct i2c_msg msgs[1] =
+	       {
+	          { 
+			  client->addr, I2C_M_RD, sizeof(u8)*number_bytes,
+	                 (void *)data_in },
+     		  };
+	i2c_transfer(client->adapter,msgs,1);
+	printk("\ndata_in=0x%x\n",data_in);
+}
+
 static int eeprom24_probe(struct i2c_client *client)
 {
        // struct si470x_device *radio;
@@ -60,14 +76,11 @@ static int eeprom24_probe(struct i2c_client *client)
 	struct device_node *of_node = dev->of_node;
 	const struct i2c_device_id *id;
 	const struct at24_chip_data *cdata;
-
 	int err,val;
 	printk("\nmy probe called\n");
 
 	pdata=dev_get_platdata(dev);// return platform data associated with the device.
 				    // It essentially does "return dev->platform_data"
-	
-	
         if(pdata==NULL)
 	{
 		pdata=devm_kzalloc(dev,sizeof(struct at24_platform_data),GFP_KERNEL);
@@ -151,6 +164,7 @@ static int eeprom24_probe(struct i2c_client *client)
 		printk("\n pdata->page_size=%d\n",pdata->page_size);
 //		printk("\n pdata->=%d\n",pdata->byte_len);
 	}
+	eeprom24_read(client);
 	return 0;
 };
 
