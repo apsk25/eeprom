@@ -64,16 +64,23 @@ int eeprom24_read()
 	struct i2c_msg msgs[1] =
 	       {
 	          { 
-			  client1->addr, 0, sizeof(u8)*number_bytes,
-	                 (void *)data_write 
-		  },
+			  client1->addr, 0, sizeof(u8)*number_bytes, (void *)data_write 
+		  }
+		};
+	if(i2c_transfer(client1->adapter,msgs,1)<0)
+		printk("\nTrasnfer Write failed\n");
+	
+	struct i2c_msg msgs2[1] =
+	{	  
 		  { 
-			  client1->addr, I2C_M_RD, sizeof(u8)*number_bytes,
-	                 (void *)data_read
+			  client1->addr, I2C_M_RD, sizeof(u8)*number_bytes, (void *)data_read
 		  },
-     		  };
-	i2c_transfer(client1->adapter,msgs,2);
-	printk("\ndats read back=%s\n",data_read);
+	};
+	if(i2c_transfer(client1->adapter,msgs2,1)<0)
+		printk("\nTrasnfer Read failed\n");
+	printk("\nAddress=0x%x\n",client1->addr);
+
+	printk("\ndata read back=%s len=%d\n",data_read,strlen(data_read));
 }
 
 static int eeprom24_probe(struct i2c_client *client)
